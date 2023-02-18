@@ -1,5 +1,5 @@
 [package]
-name = "set-or-grab"
+name = "set-with-grab"
 version = "0.1.0"
 edition = "2021"
 
