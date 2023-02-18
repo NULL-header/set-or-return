@@ -2,6 +2,7 @@
 name = "set-with-grab"
 version = "1.0.0"
 edition = "2021"
+description = "The macro to set state with error handling in bevy."
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
