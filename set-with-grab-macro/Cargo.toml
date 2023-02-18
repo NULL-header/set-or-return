@@ -1,5 +1,5 @@
 [package]
-name = "set-or-grab-macro"
+name = "set-with-grab-macro"
 version = "1.0.0"
 edition = "2021"
 
