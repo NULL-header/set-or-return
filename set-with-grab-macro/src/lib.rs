@@ -4,6 +4,11 @@ use args::Args;
 use proc_macro::TokenStream;
 use quote::quote;
 
+/// set state internally. And error handling.
+/// # Examples
+/// ```
+/// set_with_grab!(stateMutable, State::Variant);
+/// ```
 #[proc_macro]
 pub fn set_with_grab(args: TokenStream) -> TokenStream {
   let args: Args = match syn::parse(args) {
