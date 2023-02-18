@@ -1,39 +1,9 @@
-extern crate proc_macro;
-mod args;
-use args::Args;
-use proc_macro::TokenStream;
-use quote::quote;
-
-#[proc_macro]
-pub fn set_with_grab(args: TokenStream) -> TokenStream {
-  let args: Args = match syn::parse(args) {
-    Ok(a) => a,
-    Err(e) => {
-      return e.to_compile_error().into();
-    }
-  };
-  let Args { state, next } = args;
-  quote! {
-    match #state .set(#next ){
-      Ok(_)=>{},
-      Err(e)=>{
-        bevy::ecs::schedule::StateError::StateAlreadyQueued=>{},
-        bevy::ecs::schedule::StateError::AlreadyInState=>{},
-        e=>{
-          panic!({:?},e);
-        }
-      }
-    };
-  }
-  .into()
-}
+pub use set_or_grab_macro::set_with_grab;
 
 #[cfg(test)]
 mod intergration_test {
-  use super::*;
-  use crate::set_with_grab;
+  use super::set_with_grab;
   use bevy::prelude::*;
-  use quote::quote;
   use rstest::*;
 
   #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -42,13 +12,32 @@ mod intergration_test {
     After,
   }
 
-  fn setter(state: ResMut<State<MockState>>) {}
-
-  #[fixture]
-  fn app() {
-    let mut app = App::new();
-    app.add_plugins(MinimalPlugins).add_state(MockState::Before);
+  fn setter_with_grab(mut state: ResMut<State<MockState>>) {
+    set_with_grab!(state, MockState::After);
+    // if there is the under code, it will crash with running, but on testing, an error does not occurred.
+    // state.set(MockState::After).unwrap();
   }
 
-  fn change_state() {}
+  #[fixture]
+  fn app() -> App {
+    let mut app = App::new();
+    app.add_plugins(MinimalPlugins).add_state(MockState::Before);
+    app
+  }
+
+  #[rstest]
+  fn change_state_with_grab(mut app: App) {
+    app.add_system_set(
+      SystemSet::on_update(MockState::Before)
+        .with_system(setter_with_grab),
+    );
+    app.update();
+    let state = app.world.resource_mut::<State<MockState>>();
+    match state.current() {
+      MockState::After => {}
+      MockState::Before => {
+        panic!("the state is before, yet.");
+      }
+    }
+  }
 }

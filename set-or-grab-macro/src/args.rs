@@ -1,3 +1,5 @@
+use proc_macro2::TokenStream as TokenStream2;
+use quote::quote;
 use syn::{
   parse::{Parse, ParseStream},
   Ident, Token,
@@ -17,11 +19,13 @@ enum ArgsError {
   NotIdent,
   #[error("The macro must separate with comma.")]
   NotComma,
+  #[error("The second arg of the macro must be enum variant.")]
+  NotVariant,
 }
 
 pub struct Args {
   pub state: Ident,
-  pub next: Ident,
+  pub next: TokenStream2,
 }
 
 impl Parse for Args {
@@ -53,6 +57,25 @@ impl Parse for Args {
         return Err(ArgsError::NotIdent.to_syn_error(e.span()));
       }
     };
+    let _colon: Token![:] = match input.parse() {
+      Ok(i) => i,
+      Err(e) => {
+        return Err(ArgsError::NotVariant.to_syn_error(e.span()));
+      }
+    };
+    let _colon: Token![:] = match input.parse() {
+      Ok(i) => i,
+      Err(e) => {
+        return Err(ArgsError::NotVariant.to_syn_error(e.span()));
+      }
+    };
+    let variant: Ident = match input.parse() {
+      Ok(i) => i,
+      Err(e) => {
+        return Err(ArgsError::NotIdent.to_syn_error(e.span()));
+      }
+    };
+    let next = quote! {#next::#variant};
     if !input.is_empty() {
       return Err(ArgsError::TooMany.to_syn_error(input.span()));
     }
@@ -106,17 +129,23 @@ mod unittest {
   }
 
   #[rstest]
+  fn not_variant(assert: Assert) {
+    let args = quote! {Mock,MockNext};
+    assert.error(args, ArgsError::NotVariant);
+  }
+
+  #[rstest]
   fn too_many(assert: Assert) {
-    let args = quote! {Mock,MockError,Something};
+    let args = quote! {Mock,MockNext::Variant,Something};
     assert.error(args, ArgsError::TooMany);
   }
 
   #[rstest]
   fn ok(assert: Assert) {
-    let args = quote! {Mock,MockNext};
+    let args = quote! {Mock,MockNext::Variant};
     assert.ok(args, |args| {
       assert_eq!(&args.state.to_string(), "Mock");
-      assert_eq!(&args.next.to_string(), "MockNext");
+      assert_eq!(&args.next.to_string(), "MockNext :: Variant");
     });
   }
 }
